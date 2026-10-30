@@ -54,13 +54,13 @@ class RamdeobabaCanvas(canvas.Canvas):
         
         # Running Bottom Footer
         self.line(54, 45, 595 - 54, 45)
-        self.drawString(54, 32, "Global Billionaires Wealth Distribution: Statistical Inference & Classification")
+        self.drawString(54, 32, "B1-B3-38 ManasGupta SI-PROJECT | https://github.com/Manas-Gupta16/SI-LAB")
         page_str = f"Page {self._pageNumber} of {num_pages}"
         self.drawRightString(595 - 54, 32, page_str)
         self.restoreState()
 
 def build_pdf():
-    pdf_filename = "Ramdeobaba_SI_Lab_Project_Report.pdf"
+    pdf_filename = "B1-B3-38 ManasGupta SI-PROJECT.pdf"
 
     doc = SimpleDocTemplate(
         pdf_filename,
@@ -244,11 +244,11 @@ def build_pdf():
         story.append(Spacer(1, 15))
     
     story.append(Paragraph("SEMESTER V", ParagraphStyle('SemBanner', fontName='Times-Bold', fontSize=12, alignment=1, textColor=colors.HexColor('#1A365D'))))
-    story.append(Paragraph("SI LAB", ParagraphStyle('LabName', fontName='Times-Bold', fontSize=13, alignment=1, textColor=colors.HexColor('#2B6CB0'))))
-    story.append(Paragraph("PROJECT REPORT", ParagraphStyle('ReportBanner', fontName='Times-Bold', fontSize=15, alignment=1, textColor=colors.HexColor('#0F294A'))))
+    story.append(Paragraph("SI LAB — PROJECT REPORT", ParagraphStyle('LabName', fontName='Times-Bold', fontSize=13, alignment=1, textColor=colors.HexColor('#2B6CB0'))))
+    story.append(Paragraph("B1-B3-38 ManasGupta SI-PROJECT", ParagraphStyle('ReportBanner', fontName='Times-Bold', fontSize=15, alignment=1, textColor=colors.HexColor('#0F294A'))))
     story.append(Spacer(1, 8))
     
-    story.append(Paragraph("GLOBAL BILLIONAIRES WEALTH DISTRIBUTION:<br/>STATISTICAL INFERENCE, HYPOTHESIS TESTING & PREDICTIVE CLASSIFICATION", title_cover_style))
+    story.append(Paragraph("GLOBAL BILLIONAIRES WEALTH DISTRIBUTION:<br/>STATISTICAL INFERENCE, HYPOTHESIS TESTING & PREDICTIVE MACHINE LEARNING", title_cover_style))
     
     story.append(HRFlowable(width="90%", thickness=1.5, color=colors.HexColor('#1A365D'), spaceBefore=12, spaceAfter=14))
 
@@ -256,7 +256,7 @@ def build_pdf():
     submission_data = [
         [Paragraph("<b>Submitted by:</b>", ParagraphStyle('SubHead', fontName='Times-Bold', fontSize=10.5, textColor=colors.HexColor('#1A365D'))),
          Paragraph("<b>Under Guidance of:</b>", ParagraphStyle('SubHead2', fontName='Times-Bold', fontSize=10.5, textColor=colors.HexColor('#1A365D')))],
-        [Paragraph("<b>Student Name:</b> Manas Gupta<br/><b>Roll Number:</b> B1_B3_38<br/><b>Enrollment No:</b> EN22AIDS038<br/><b>Batch:</b> B1 / B3<br/><b>Academic Year:</b> 2026–27", body_style),
+        [Paragraph("<b>Student Name:</b> Manas Gupta<br/><b>Roll Number:</b> B1-B3-38<br/><b>Enrollment No:</b> EN22AIDS038<br/><b>Batch:</b> B1 / B3<br/><b>Academic Year:</b> 2026–27<br/><b>Repository:</b> github.com/Manas-Gupta16/SI-LAB", body_style),
          Paragraph("Course Faculty<br/>Department of Computer Science & Engineering<br/>Ramdeobaba University, Nagpur", body_style)]
     ]
     sub_table = Table(submission_data, colWidths=[240, 240])

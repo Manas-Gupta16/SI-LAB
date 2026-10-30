@@ -1,18 +1,18 @@
 # RAMDEOBABA UNIVERSITY, NAGPUR
 ## DEPARTMENT OF COMPUTER SCIENCE AND ENGINEERING
 ### B.Tech. CSE (Artificial Intelligence and Data Science) (AIDS) — SEMESTER V
-### SI LAB — PROJECT REPORT
+### SI LAB — PROJECT REPORT: B1-B3-38 ManasGupta SI-PROJECT
 
 ---
 
-# GLOBAL BILLIONAIRES WEALTH DISTRIBUTION: STATISTICAL INFERENCE & PREDICTIVE MODELING
+# GLOBAL BILLIONAIRES WEALTH DISTRIBUTION: STATISTICAL INFERENCE & PREDICTIVE MACHINE LEARNING
 
 **Submitted by:**  
 - **Student Name:** Manas Gupta  
-- **Roll No.:** B1_B3_38  
+- **Roll No.:** B1-B3-38 (Batch B1 / B3)  
 - **Enrollment No.:** EN22AIDS038  
-- **Batch:** B1 / B3  
 - **Academic Year:** 2026–27  
+- **GitHub Repository:** [https://github.com/Manas-Gupta16/SI-LAB](https://github.com/Manas-Gupta16/SI-LAB)  
 
 **Under Guidance of:**  
 Course Faculty, Department of Computer Science & Engineering, Ramdeobaba University, Nagpur  
