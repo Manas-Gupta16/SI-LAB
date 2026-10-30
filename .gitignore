@@ -1,0 +1,14 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local environment & caches
+.streamlit/credentials.toml
+*.log
+format_extracted.txt
+scratch/
+
+# OS metadata
+.DS_Store
+Thumbs.db
