@@ -256,30 +256,59 @@ if section == "🔮 Live AI Prediction Engine (Net Worth & Tier)":
     """)
 
     st.subheader("⚡ Quick-Load Test Personas (Click for Instant Demonstration)")
+    
+    # Initialize session state keys if not set
+    if 'p_age_r' not in st.session_state: st.session_state['p_age_r'] = 52
+    if 'p_ind_r' not in st.session_state: st.session_state['p_ind_r'] = 'Technology'
+    if 'p_ctry_r' not in st.session_state: st.session_state['p_ctry_r'] = 'United States'
+    if 'p_self_r' not in st.session_state: st.session_state['p_self_r'] = 'Self-Made Entrepreneur'
+    if 'p_gen_r' not in st.session_state: st.session_state['p_gen_r'] = 'Male'
+
+    if 'p_age_c' not in st.session_state: st.session_state['p_age_c'] = 52
+    if 'p_nw_c' not in st.session_state: st.session_state['p_nw_c'] = 7.5
+    if 'p_ind_c' not in st.session_state: st.session_state['p_ind_c'] = 'Technology'
+    if 'p_ctry_c' not in st.session_state: st.session_state['p_ctry_c'] = 'United States'
+    if 'p_gen_c' not in st.session_state: st.session_state['p_gen_c'] = 'Male'
+
     q1, q2, q3 = st.columns(3)
     if q1.button("🚀 Silicon Valley Tech Founder", use_container_width=True):
-        st.session_state['sel_age'] = 36
-        st.session_state['sel_ind'] = 'Technology'
-        st.session_state['sel_country'] = 'United States'
-        st.session_state['sel_self'] = 'Self-Made Entrepreneur'
-        st.session_state['sel_gender'] = 'Male'
-        st.session_state['sel_nw'] = 12.5
+        st.session_state['p_age_r'] = 36
+        st.session_state['p_ind_r'] = 'Technology'
+        st.session_state['p_ctry_r'] = 'United States'
+        st.session_state['p_self_r'] = 'Self-Made Entrepreneur'
+        st.session_state['p_gen_r'] = 'Male'
+        st.session_state['p_age_c'] = 36
+        st.session_state['p_nw_c'] = 12.5
+        st.session_state['p_ind_c'] = 'Technology'
+        st.session_state['p_ctry_c'] = 'United States'
+        st.session_state['p_gen_c'] = 'Male'
+        st.rerun()
 
     if q2.button("🏛️ European Luxury Dynastic Heir", use_container_width=True):
-        st.session_state['sel_age'] = 68
-        st.session_state['sel_ind'] = 'Fashion & Retail'
-        st.session_state['sel_country'] = 'France'
-        st.session_state['sel_self'] = 'Inherited / Family Dynasty'
-        st.session_state['sel_gender'] = 'Male'
-        st.session_state['sel_nw'] = 54.0
+        st.session_state['p_age_r'] = 68
+        st.session_state['p_ind_r'] = 'Fashion & Retail'
+        st.session_state['p_ctry_r'] = 'France'
+        st.session_state['p_self_r'] = 'Inherited / Family Dynasty'
+        st.session_state['p_gen_r'] = 'Male'
+        st.session_state['p_age_c'] = 68
+        st.session_state['p_nw_c'] = 54.0
+        st.session_state['p_ind_c'] = 'Fashion & Retail'
+        st.session_state['p_ctry_c'] = 'France'
+        st.session_state['p_gen_c'] = 'Male'
+        st.rerun()
 
     if q3.button("🏭 Asian Manufacturing Titan", use_container_width=True):
-        st.session_state['sel_age'] = 62
-        st.session_state['sel_ind'] = 'Manufacturing'
-        st.session_state['sel_country'] = 'China'
-        st.session_state['sel_self'] = 'Self-Made Entrepreneur'
-        st.session_state['sel_gender'] = 'Male'
-        st.session_state['sel_nw'] = 6.8
+        st.session_state['p_age_r'] = 62
+        st.session_state['p_ind_r'] = 'Manufacturing'
+        st.session_state['p_ctry_r'] = 'China'
+        st.session_state['p_self_r'] = 'Self-Made Entrepreneur'
+        st.session_state['p_gen_r'] = 'Male'
+        st.session_state['p_age_c'] = 62
+        st.session_state['p_nw_c'] = 6.8
+        st.session_state['p_ind_c'] = 'Manufacturing'
+        st.session_state['p_ctry_c'] = 'China'
+        st.session_state['p_gen_c'] = 'Male'
+        st.rerun()
 
     tab_pred_reg, tab_pred_clf, tab_eval = st.tabs([
         "💰 Expected Net Worth Predictor (Regression)",
@@ -287,27 +316,28 @@ if section == "🔮 Live AI Prediction Engine (Net Worth & Tier)":
         "📊 Model Benchmarks & Validation Metrics"
     ])
 
+    all_inds = sorted(df['Industry'].unique().tolist())
+    all_ctrys = top_countries_list + ['Other']
+
     with tab_pred_reg:
         st.subheader("1. Interactive Net Worth ($B USD) Prediction")
         st.write("Provide demographic and industrial inputs to predict expected billionaire capital valuation:")
 
         r_col_in, r_col_out = st.columns([1, 1.1])
         with r_col_in:
-            in_age = st.slider("Individual Age (Years):", 18, 100, st.session_state.get('sel_age', 52), key='p_age_r')
-            all_inds = sorted(df['Industry'].unique().tolist())
-            def_ind_idx = all_inds.index(st.session_state.get('sel_ind', 'Technology')) if st.session_state.get('sel_ind', 'Technology') in all_inds else 0
-            in_ind = st.selectbox("Industry Sector:", all_inds, index=def_ind_idx, key='p_ind_r')
+            in_age = st.slider("Individual Age (Years):", 18, 100, st.session_state['p_age_r'], key='slider_age_r')
+            def_ind_idx = all_inds.index(st.session_state['p_ind_r']) if st.session_state['p_ind_r'] in all_inds else 0
+            in_ind = st.selectbox("Industry Sector:", all_inds, index=def_ind_idx, key='select_ind_r')
             
-            all_ctrys = top_countries_list + ['Other']
-            def_ctry_idx = all_ctrys.index(st.session_state.get('sel_country', 'United States')) if st.session_state.get('sel_country', 'United States') in all_ctrys else 0
-            in_ctry = st.selectbox("Country of Operation:", all_ctrys, index=def_ctry_idx, key='p_ctry_r')
+            def_ctry_idx = all_ctrys.index(st.session_state['p_ctry_r']) if st.session_state['p_ctry_r'] in all_ctrys else 0
+            in_ctry = st.selectbox("Country of Operation:", all_ctrys, index=def_ctry_idx, key='select_ctry_r')
             
             in_self = st.radio("Founding Status:", ["Self-Made Entrepreneur", "Inherited / Family Dynasty"], 
-                               index=0 if st.session_state.get('sel_self', 'Self-Made Entrepreneur') == 'Self-Made Entrepreneur' else 1, 
-                               horizontal=True, key='p_self_r')
+                               index=0 if st.session_state['p_self_r'] == "Self-Made Entrepreneur" else 1, 
+                               horizontal=True, key='radio_self_r')
             in_gender = st.radio("Gender:", ["Male", "Female"], 
-                                 index=0 if st.session_state.get('sel_gender', 'Male') == 'Male' else 1, 
-                                 horizontal=True, key='p_gen_r')
+                                 index=0 if st.session_state['p_gen_r'] == "Male" else 1, 
+                                 horizontal=True, key='radio_gen_r')
             sel_reg_model = st.selectbox("Machine Learning Algorithm:", list(fitted_reg.keys()), index=0)
             btn_run_reg = st.button("🚀 Calculate Predicted Net Worth", type="primary", use_container_width=True)
 
@@ -378,11 +408,13 @@ if section == "🔮 Live AI Prediction Engine (Net Worth & Tier)":
 
         c_col_in, c_col_out = st.columns([1, 1.1])
         with c_col_in:
-            in_age_c = st.slider("Individual Age (Years):", 18, 100, st.session_state.get('sel_age', 52), key='p_age_c')
-            in_nw_c = st.number_input("Current Net Worth ($B USD):", min_value=1.0, max_value=250.0, value=float(st.session_state.get('sel_nw', 7.5)), step=0.5, key='p_nw_c')
-            in_ind_c = st.selectbox("Industry Sector:", all_inds, index=def_ind_idx, key='p_ind_c')
-            in_ctry_c = st.selectbox("Country of Operation:", all_ctrys, index=def_ctry_idx, key='p_ctry_c')
-            in_gender_c = st.radio("Gender:", ["Male", "Female"], index=0 if st.session_state.get('sel_gender', 'Male') == 'Male' else 1, horizontal=True, key='p_gen_c')
+            in_age_c = st.slider("Individual Age (Years):", 18, 100, st.session_state['p_age_c'], key='slider_age_c')
+            in_nw_c = st.number_input("Current Net Worth ($B USD):", min_value=1.0, max_value=250.0, value=float(st.session_state['p_nw_c']), step=0.5, key='num_nw_c')
+            def_ind_c_idx = all_inds.index(st.session_state['p_ind_c']) if st.session_state['p_ind_c'] in all_inds else 0
+            in_ind_c = st.selectbox("Industry Sector:", all_inds, index=def_ind_c_idx, key='select_ind_c')
+            def_ctry_c_idx = all_ctrys.index(st.session_state['p_ctry_c']) if st.session_state['p_ctry_c'] in all_ctrys else 0
+            in_ctry_c = st.selectbox("Country of Operation:", all_ctrys, index=def_ctry_c_idx, key='select_ctry_c')
+            in_gender_c = st.radio("Gender:", ["Male", "Female"], index=0 if st.session_state['p_gen_c'] == "Male" else 1, horizontal=True, key='radio_gen_c')
             sel_clf_model = st.selectbox("Classification Architecture:", list(fitted_clf.keys()), index=0)
             btn_run_clf = st.button("🔮 Classify Wealth Origin", type="primary", use_container_width=True)
 
