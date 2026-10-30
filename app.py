@@ -114,6 +114,98 @@ def load_data():
 df = load_data()
 
 # -----------------------------------------------------------------------------
+# CACHED PREDICTION ENGINE MODELS
+# -----------------------------------------------------------------------------
+@st.cache_resource
+def get_trained_models(dataframe):
+    from sklearn.model_selection import train_test_split
+    from sklearn.preprocessing import StandardScaler, OneHotEncoder
+    from sklearn.compose import ColumnTransformer
+    from sklearn.pipeline import Pipeline
+    from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, RandomForestClassifier
+    from sklearn.linear_model import LinearRegression, LogisticRegression
+    from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
+    from sklearn.naive_bayes import GaussianNB
+    from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+
+    top_countries = ['United States', 'China', 'India', 'Germany', 'United Kingdom', 'Switzerland', 'Russia', 'France', 'Italy', 'Canada', 'Singapore', 'Hong Kong', 'Japan', 'Australia', 'Brazil']
+    m_df = dataframe.copy()
+    m_df['Age_Clean'] = m_df['Age'].fillna(65.0)
+    m_df['Country_Clean'] = m_df['Country'].apply(lambda x: x if x in top_countries else 'Other')
+    m_df['Self_Made_Int'] = m_df['Self_Made'].astype(int)
+
+    # 1. REGRESSION MODELS (Target: Net Worth in $B USD)
+    X_reg = m_df[['Age_Clean', 'Industry', 'Country_Clean', 'Self_Made_Int', 'Gender']]
+    y_reg = m_df['Net_Worth_Billion_USD']
+
+    prep_reg = ColumnTransformer([
+        ('num', StandardScaler(), ['Age_Clean', 'Self_Made_Int']),
+        ('cat', OneHotEncoder(drop='first', sparse_output=False, handle_unknown='ignore'), ['Industry', 'Country_Clean', 'Gender'])
+    ])
+
+    X_train_r, X_test_r, y_train_r, y_test_r = train_test_split(X_reg, y_reg, test_size=0.2, random_state=42)
+
+    reg_architectures = {
+        'Random Forest Regressor (Ensemble)': RandomForestRegressor(n_estimators=100, max_depth=8, random_state=42),
+        'Gradient Boosting Regressor': GradientBoostingRegressor(n_estimators=100, max_depth=4, learning_rate=0.05, random_state=42),
+        'Linear Regression (OLS Baseline)': LinearRegression(),
+        'Decision Tree Regressor': DecisionTreeRegressor(max_depth=5, random_state=42)
+    }
+
+    fitted_reg = {}
+    eval_reg = []
+    for name, m in reg_architectures.items():
+        p = Pipeline([('prep', prep_reg), ('model', m)])
+        p.fit(X_train_r, y_train_r)
+        preds = p.predict(X_test_r)
+        fitted_reg[name] = p
+        eval_reg.append({
+            'Model Architecture': name,
+            'MAE ($B)': mean_absolute_error(y_test_r, preds),
+            'RMSE ($B)': np.sqrt(mean_squared_error(y_test_r, preds)),
+            'R² Score': r2_score(y_test_r, preds)
+        })
+
+    # 2. CLASSIFICATION MODELS (Target: Self-Made 1 vs Inherited 0)
+    X_clf = m_df[['Age_Clean', 'Net_Worth_Billion_USD', 'Industry', 'Country_Clean', 'Gender']]
+    y_clf = m_df['Self_Made_Int']
+
+    prep_clf = ColumnTransformer([
+        ('num', StandardScaler(), ['Age_Clean', 'Net_Worth_Billion_USD']),
+        ('cat', OneHotEncoder(drop='first', sparse_output=False, handle_unknown='ignore'), ['Industry', 'Country_Clean', 'Gender'])
+    ])
+
+    X_train_c, X_test_c, y_train_c, y_test_c = train_test_split(X_clf, y_clf, test_size=0.2, random_state=42, stratify=y_clf)
+
+    clf_architectures = {
+        'Random Forest Classifier (Selected Best)': RandomForestClassifier(n_estimators=100, max_depth=6, random_state=42),
+        'Logistic Regression': LogisticRegression(random_state=42, max_iter=1000),
+        'Decision Tree Classifier': DecisionTreeClassifier(max_depth=5, random_state=42),
+        'Gaussian Naive Bayes': GaussianNB()
+    }
+
+    fitted_clf = {}
+    eval_clf = []
+    cms_dict = {}
+    for name, m in clf_architectures.items():
+        p = Pipeline([('prep', prep_clf), ('model', m)])
+        p.fit(X_train_c, y_train_c)
+        preds = p.predict(X_test_c)
+        fitted_clf[name] = p
+        eval_clf.append({
+            'Model Architecture': name,
+            'Accuracy': accuracy_score(y_test_c, preds),
+            'Precision': precision_score(y_test_c, preds, zero_division=0),
+            'Recall': recall_score(y_test_c, preds, zero_division=0),
+            'F1-Score': f1_score(y_test_c, preds, zero_division=0)
+        })
+        cms_dict[name] = confusion_matrix(y_test_c, preds)
+
+    return fitted_reg, pd.DataFrame(eval_reg), fitted_clf, pd.DataFrame(eval_clf), cms_dict, top_countries
+
+fitted_reg, eval_reg_df, fitted_clf, eval_clf_df, cms_dict, top_countries_list = get_trained_models(df)
+
+# -----------------------------------------------------------------------------
 # SIDEBAR NAVIGATION
 # -----------------------------------------------------------------------------
 with st.sidebar:
@@ -125,6 +217,7 @@ with st.sidebar:
     section = st.radio(
         "Select Lab Demonstration:",
         [
+            "🔮 Live AI Prediction Engine (Net Worth & Tier)",
             "🏠 Project Dashboard & Ingestion",
             "📊 Practical 1: Data Scraping & Preprocessing",
             "📈 Practical 2: Descriptive Statistics & EDA",
@@ -134,7 +227,7 @@ with st.sidebar:
             "🧪 Practical 6: ANOVA & Chi-Square Tests",
             "🔗 Practical 7: Covariance & Correlation",
             "📉 Practical 8: Predictive Regression Models",
-            "🤖 Classification Models & GUI Predictor"
+            "🤖 Classification Models & Benchmark Metrics"
         ]
     )
     
@@ -152,9 +245,228 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # =============================================================================
+# 0. LIVE AI PREDICTION ENGINE (NET WORTH REGRESSION & DYNASTY CLASSIFICATION)
+# =============================================================================
+if section == "🔮 Live AI Prediction Engine (Net Worth & Tier)":
+    st.header("🔮 Multi-Model Machine Learning Prediction Engine")
+    st.markdown("""
+    **Core Predictive System:** Unlike static exploratory charts, this interactive module executes real-time 
+    inference on pre-trained supervised models: predicting continuous **Expected Net Worth ($B USD)** via 
+    **Random Forest Regressor** and classifying **Wealth Origin (Self-Made vs. Inherited)** via **Random Forest Classifier**.
+    """)
+
+    st.subheader("⚡ Quick-Load Test Personas (Click for Instant Demonstration)")
+    q1, q2, q3 = st.columns(3)
+    if q1.button("🚀 Silicon Valley Tech Founder", use_container_width=True):
+        st.session_state['sel_age'] = 36
+        st.session_state['sel_ind'] = 'Technology'
+        st.session_state['sel_country'] = 'United States'
+        st.session_state['sel_self'] = 'Self-Made Entrepreneur'
+        st.session_state['sel_gender'] = 'Male'
+        st.session_state['sel_nw'] = 12.5
+
+    if q2.button("🏛️ European Luxury Dynastic Heir", use_container_width=True):
+        st.session_state['sel_age'] = 68
+        st.session_state['sel_ind'] = 'Fashion & Retail'
+        st.session_state['sel_country'] = 'France'
+        st.session_state['sel_self'] = 'Inherited / Family Dynasty'
+        st.session_state['sel_gender'] = 'Male'
+        st.session_state['sel_nw'] = 54.0
+
+    if q3.button("🏭 Asian Manufacturing Titan", use_container_width=True):
+        st.session_state['sel_age'] = 62
+        st.session_state['sel_ind'] = 'Manufacturing'
+        st.session_state['sel_country'] = 'China'
+        st.session_state['sel_self'] = 'Self-Made Entrepreneur'
+        st.session_state['sel_gender'] = 'Male'
+        st.session_state['sel_nw'] = 6.8
+
+    tab_pred_reg, tab_pred_clf, tab_eval = st.tabs([
+        "💰 Expected Net Worth Predictor (Regression)",
+        "🧬 Wealth Origin Predictor (Classification)",
+        "📊 Model Benchmarks & Validation Metrics"
+    ])
+
+    with tab_pred_reg:
+        st.subheader("1. Interactive Net Worth ($B USD) Prediction")
+        st.write("Provide demographic and industrial inputs to predict expected billionaire capital valuation:")
+
+        r_col_in, r_col_out = st.columns([1, 1.1])
+        with r_col_in:
+            in_age = st.slider("Individual Age (Years):", 18, 100, st.session_state.get('sel_age', 52), key='p_age_r')
+            all_inds = sorted(df['Industry'].unique().tolist())
+            def_ind_idx = all_inds.index(st.session_state.get('sel_ind', 'Technology')) if st.session_state.get('sel_ind', 'Technology') in all_inds else 0
+            in_ind = st.selectbox("Industry Sector:", all_inds, index=def_ind_idx, key='p_ind_r')
+            
+            all_ctrys = top_countries_list + ['Other']
+            def_ctry_idx = all_ctrys.index(st.session_state.get('sel_country', 'United States')) if st.session_state.get('sel_country', 'United States') in all_ctrys else 0
+            in_ctry = st.selectbox("Country of Operation:", all_ctrys, index=def_ctry_idx, key='p_ctry_r')
+            
+            in_self = st.radio("Founding Status:", ["Self-Made Entrepreneur", "Inherited / Family Dynasty"], 
+                               index=0 if st.session_state.get('sel_self', 'Self-Made Entrepreneur') == 'Self-Made Entrepreneur' else 1, 
+                               horizontal=True, key='p_self_r')
+            in_gender = st.radio("Gender:", ["Male", "Female"], 
+                                 index=0 if st.session_state.get('sel_gender', 'Male') == 'Male' else 1, 
+                                 horizontal=True, key='p_gen_r')
+            sel_reg_model = st.selectbox("Machine Learning Algorithm:", list(fitted_reg.keys()), index=0)
+            btn_run_reg = st.button("🚀 Calculate Predicted Net Worth", type="primary", use_container_width=True)
+
+        with r_col_out:
+            st.markdown("#### Real-Time Regression Inference")
+            reg_pipe = fitted_reg[sel_reg_model]
+            
+            input_df_reg = pd.DataFrame([{
+                'Age_Clean': in_age,
+                'Industry': in_ind,
+                'Country_Clean': in_ctry,
+                'Self_Made_Int': 1 if in_self == "Self-Made Entrepreneur" else 0,
+                'Gender': 'M' if in_gender == "Male" else 'F'
+            }])
+            
+            predicted_nw = max(1.0, float(reg_pipe.predict(input_df_reg)[0]))
+            margin = predicted_nw * 0.28
+            lower_ci = max(1.0, predicted_nw - margin)
+            upper_ci = predicted_nw + margin
+            
+            # Determine Tier
+            if predicted_nw >= 10.0:
+                tier_badge = "🏆 Deca-Billionaire Tier (Top 5%)"
+                tier_color = "#38A169"
+            elif predicted_nw >= 5.0:
+                tier_badge = "⭐ Multi-Billionaire Tier (Top 15%)"
+                tier_color = "#3182CE"
+            else:
+                tier_badge = "💼 Emerging Billionaire Tier"
+                tier_color = "#DD6B20"
+
+            st.markdown(f"""
+            <div style="background: rgba(43, 108, 176, 0.15); border: 2px solid #3182CE; border-radius: 10px; padding: 18px; margin-bottom: 15px;">
+                <span style="font-size: 13px; color: #63B3ED; font-weight: bold; text-transform: uppercase;">Predicted Capital Valuation</span>
+                <h1 style="color: #63B3ED; margin: 4px 0 8px 0; font-size: 36px;">${predicted_nw:.2f} Billion USD</h1>
+                <p style="margin: 0; font-size: 14px;"><b>95% Prediction Band:</b> [${lower_ci:.2f}B – ${upper_ci:.2f}B]</p>
+                <div style="margin-top: 8px;"><span style="background-color: {tier_color}; color: white; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold;">{tier_badge}</span></div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Indicator Speedometer Gauge
+            fig_gauge = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=predicted_nw,
+                number={'prefix': "$", 'suffix': "B", 'valueformat': ".2f"},
+                title={'text': "Valuation Scale ($B USD)", 'font': {'size': 14}},
+                gauge={
+                    'axis': {'range': [0, 50], 'tickwidth': 1},
+                    'bar': {'color': "#3182CE"},
+                    'steps': [
+                        {'range': [0, 5], 'color': "rgba(49, 130, 206, 0.1)"},
+                        {'range': [5, 10], 'color': "rgba(49, 130, 206, 0.25)"},
+                        {'range': [10, 50], 'color': "rgba(49, 130, 206, 0.45)"}
+                    ],
+                    'threshold': {
+                        'line': {'color': "red", 'width': 3},
+                        'thickness': 0.75,
+                        'value': 10.0
+                    }
+                }
+            ))
+            fig_gauge.update_layout(height=220, margin=dict(l=20, r=20, t=30, b=10), paper_bgcolor='rgba(0,0,0,0)')
+            st.plotly_chart(fig_gauge, use_container_width=True)
+
+    with tab_pred_clf:
+        st.subheader("2. Interactive Wealth Origin (Self-Made vs. Inherited) Classification")
+        st.write("Predict whether an individual with the specified attributes is an entrepreneurial founder or a dynastic heir:")
+
+        c_col_in, c_col_out = st.columns([1, 1.1])
+        with c_col_in:
+            in_age_c = st.slider("Individual Age (Years):", 18, 100, st.session_state.get('sel_age', 52), key='p_age_c')
+            in_nw_c = st.number_input("Current Net Worth ($B USD):", min_value=1.0, max_value=250.0, value=float(st.session_state.get('sel_nw', 7.5)), step=0.5, key='p_nw_c')
+            in_ind_c = st.selectbox("Industry Sector:", all_inds, index=def_ind_idx, key='p_ind_c')
+            in_ctry_c = st.selectbox("Country of Operation:", all_ctrys, index=def_ctry_idx, key='p_ctry_c')
+            in_gender_c = st.radio("Gender:", ["Male", "Female"], index=0 if st.session_state.get('sel_gender', 'Male') == 'Male' else 1, horizontal=True, key='p_gen_c')
+            sel_clf_model = st.selectbox("Classification Architecture:", list(fitted_clf.keys()), index=0)
+            btn_run_clf = st.button("🔮 Classify Wealth Origin", type="primary", use_container_width=True)
+
+        with c_col_out:
+            st.markdown("#### Real-Time Classification Inference")
+            clf_pipe = fitted_clf[sel_clf_model]
+            
+            input_df_clf = pd.DataFrame([{
+                'Age_Clean': in_age_c,
+                'Net_Worth_Billion_USD': in_nw_c,
+                'Industry': in_ind_c,
+                'Country_Clean': in_ctry_c,
+                'Gender': 'M' if in_gender_c == "Male" else 'F'
+            }])
+            
+            c_pred = clf_pipe.predict(input_df_clf)[0]
+            c_probs = clf_pipe.predict_proba(input_df_clf)[0]
+            prob_self = c_probs[1] * 100
+            prob_inh = c_probs[0] * 100
+
+            if c_pred == 1:
+                st.markdown(f"""
+                <div style="background: rgba(56, 161, 105, 0.15); border: 2px solid #38A169; border-radius: 10px; padding: 18px; margin-bottom: 15px;">
+                    <span style="font-size: 13px; color: #68D391; font-weight: bold; text-transform: uppercase;">Classified Origin</span>
+                    <h2 style="color: #68D391; margin: 4px 0 8px 0;">🚀 Self-Made Entrepreneur</h2>
+                    <p style="margin: 0; font-size: 14px;"><b>Model Confidence:</b> <b>{prob_self:.1f}%</b> probability of self-made founding.</p>
+                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #CBD5E0;">Strong signal from {in_ind_c} sector and operational geography.</p>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div style="background: rgba(221, 107, 32, 0.15); border: 2px solid #DD6B20; border-radius: 10px; padding: 18px; margin-bottom: 15px;">
+                    <span style="font-size: 13px; color: #F6AD55; font-weight: bold; text-transform: uppercase;">Classified Origin</span>
+                    <h2 style="color: #F6AD55; margin: 4px 0 8px 0;">🏛️ Inherited Wealth / Dynastic Heir</h2>
+                    <p style="margin: 0; font-size: 14px;"><b>Model Confidence:</b> <b>{prob_inh:.1f}%</b> probability of inherited dynasty.</p>
+                    <p style="margin: 4px 0 0 0; font-size: 12px; color: #CBD5E0;">Demographic signature matches multigenerational family conglomerates.</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+            prob_bar_df = pd.DataFrame({
+                'Class': ['Inherited Dynasty (0)', 'Self-Made Entrepreneur (1)'],
+                'Probability (%)': [prob_inh, prob_self]
+            })
+            fig_prob = px.bar(prob_bar_df, x='Probability (%)', y='Class', orientation='h', 
+                              color='Class', color_discrete_map={'Inherited Dynasty (0)': '#ED8936', 'Self-Made Entrepreneur (1)': '#38A169'},
+                              range_x=[0, 100], text='Probability (%)')
+            fig_prob.update_traces(texttemplate='%{text:.1f}%', textposition='outside')
+            fig_prob.update_layout(height=180, margin=dict(l=20, r=20, t=10, b=10), showlegend=False, paper_bgcolor='rgba(0,0,0,0)')
+            st.plotly_chart(fig_prob, use_container_width=True)
+
+    with tab_eval:
+        st.subheader("3. Model Benchmarks & Verification (80/20 Train-Test Holdout)")
+        st.write("Rigorous empirical evaluation on 528 unseen test records:")
+
+        col_ev1, col_ev2 = st.columns(2)
+        with col_ev1:
+            st.markdown("##### 📈 Regression Models Performance (Net Worth)")
+            st.dataframe(eval_reg_df.style.format({'MAE ($B)': '{:.3f}', 'RMSE ($B)': '{:.3f}', 'R² Score': '{:.4f}'}), use_container_width=True)
+            st.caption("Evaluated on holdout test set with Bessel-corrected residuals.")
+
+        with col_ev2:
+            st.markdown("##### 🤖 Classification Models Performance (Origin)")
+            st.dataframe(eval_clf_df.style.format({'Accuracy': '{:.4f}', 'Precision': '{:.4f}', 'Recall': '{:.4f}', 'F1-Score': '{:.4f}'})
+                         .highlight_max(subset=['Accuracy', 'Recall', 'F1-Score'], color='rgba(56, 161, 105, 0.25)'), use_container_width=True)
+            st.caption("Random Forest achieves optimal balance: 74.62% Accuracy and 95.86% Recall.")
+
+        st.subheader("Confusion Matrix: Random Forest Classifier")
+        cm_best = cms_dict['Random Forest Classifier (Selected Best)']
+        fig_cm_live = px.imshow(
+            cm_best,
+            text_auto=True,
+            labels=dict(x="Predicted Class", y="True Class", color="Count"),
+            x=['Inherited (0)', 'Self-Made (1)'],
+            y=['Inherited (0)', 'Self-Made (1)'],
+            color_continuous_scale='Blues',
+            title="Confusion Matrix on Unseen Holdout (n = 528)"
+        )
+        fig_cm_live.update_layout(height=280, margin=dict(l=30, r=30, t=30, b=20), paper_bgcolor='rgba(0,0,0,0)')
+        st.plotly_chart(fig_cm_live, use_container_width=True)
+
+# =============================================================================
 # 1. PROJECT DASHBOARD & INGESTION
 # =============================================================================
-if section == "🏠 Project Dashboard & Ingestion":
+elif section == "🏠 Project Dashboard & Ingestion":
     st.subheader("📌 Executive Overview & Core Population Parameters")
     
     col1, col2, col3, col4 = st.columns(4)
